@@ -2,8 +2,7 @@
 
 Overview  
 Lifeline is a full‑stack emergency coordination platform (React frontend + Express/MongoDB backend). It provides emergency requests, helper discovery, real‑time tracking & chat, hospital locator, AI medical assistant, file uploads, and a simple orders/payment flow.
-
-How this helps rural communities (and others)  
+ 
 Lifeline connects people in low-resource or remote areas with nearby helpers, ambulance drivers and medical professionals quickly, reducing response times and improving access to timely care. It also offers affordable fare calculations and simple payment flows so users in rural areas can access essential services reliably.
 Repository layout (important)
 - `backend/` — Express API server, controllers, models, routes, scripts  
@@ -360,3 +359,4 @@ npm start     # react-scripts start (port 3000)
 Default URLs:
 - Backend: http://localhost:5000  
 - Frontend: http://localhost:3000
+
