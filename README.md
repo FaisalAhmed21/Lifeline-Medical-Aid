@@ -225,8 +225,7 @@ Repository layout (important)
 29. Payment / Orders system  
 29.1 Create/manage orders (`/api/orders/create`)  
 29.2 Verify payments (`/api/orders/verify`)  
-29.3 Complete/distribute payments (`/api/orders/complete`)  
-29.4 Ambulance fare calculation: up to 5 km free; extra km rounded up × 100 ৳ (calculated from `EmergencyRequest.distance`)
+29.3 Complete/distribute payments (`/api/orders/complete`)
 
 
 ---
@@ -359,4 +358,5 @@ npm start     # react-scripts start (port 3000)
 Default URLs:
 - Backend: http://localhost:5000  
 - Frontend: http://localhost:3000
+
 
