@@ -1,4 +1,5 @@
 Lifeline — Emergency & Medical Aid Platform
+--------
 
 Overview
 --------
