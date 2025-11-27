@@ -1,0 +1,248 @@
+/* Live Tracking Page Styles */
+
+.live-tracking-container {
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+.map-marker-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.helper-card {
+  transition: all 0.3s ease;
+}
+
+.helper-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.distance-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.connection-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.connection-dot.connected {
+  background-color: #10b981;
+  animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.connection-dot.disconnected {
+  background-color: #ef4444;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+.route-line {
+  stroke-dasharray: 5, 10;
+  animation: dash 30s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+.marker-info-window {
+  padding: 1rem;
+  min-width: 200px;
+}
+
+.marker-info-window h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #1f2937;
+}
+
+.marker-info-window p {
+  margin: 0.25rem 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-badge.pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.assigned {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge.in-progress {
+  background-color: #e9d5ff;
+  color: #6b21a8;
+}
+
+.status-badge.en-route {
+  background-color: #fed7aa;
+  color: #9a3412;
+}
+
+.status-badge.arrived {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge.completed {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.status-badge.cancelled {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.map-legend {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.helper-details-card {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.helper-details-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background-color: #d1fae5;
+  color: #065f46;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.live-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10b981;
+  animation: pulse-dot 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.eta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.loading-spinner {
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .map-legend {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .marker-info-window {
+    min-width: 150px;
+  }
+
+  .helper-details-card {
+    padding: 1rem;
+  }
+}
