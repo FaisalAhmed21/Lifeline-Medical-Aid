@@ -18,8 +18,12 @@ const AuthCallback = () => {
           // Store token
           localStorage.setItem('token', token);
           
-          // Fetch user data
-          const response = await api.get('/auth/me');
+          // Fetch user data explicitly with the new token
+          const response = await api.get('/auth/me', {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
           const userData = response.data.data;
           
           // Store user data

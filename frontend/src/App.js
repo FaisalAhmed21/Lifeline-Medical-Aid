@@ -5,7 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import VoiceCommand from './components/VoiceCommand';
-import LifeBot from './components/LifeBot';
+import ChatbotWidget from './components/ChatbotWidget';
 import Emergency999 from './components/Emergency999';
 import io from 'socket.io-client';
 import { toast } from 'react-toastify';
@@ -89,12 +89,13 @@ function App() {
       <Navbar />
       
       {/* Global components available when authenticated */}
-      {isAuthenticated && (
-        <>
-          <LifeBot />
-          <Emergency999 />
-        </>
-      )}
+        {isAuthenticated && (
+          <>
+            <VoiceCommand />
+            <ChatbotWidget />
+            <Emergency999 />
+          </>
+        )}
       
       <Routes>
         <Route path="/" element={<Home />} />
