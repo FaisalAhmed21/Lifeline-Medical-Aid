@@ -1,0 +1,64 @@
+const axios = require('axios');
+
+exports.askChatbot = async (req, res) => {
+  try {
+    const { message, history } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ success: false, error: 'Message is required' });
+    }
+
+    const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+    
+    if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your-openrouter-api-key') {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'OpenRouter API Key is not configured on the server.' 
+      });
+    }
+
+    // Prepare messages array for OpenRouter
+    const systemPrompt = {
+      role: 'system',
+      content: 'You are LifeBot, a professional medical and first-aid navigation assistant for the Lifeline Medical Aid platform. Your primary job is to help users navigate medical emergencies, provide basic first-aid instructions, and direct them to book an ambulance or consult a doctor on the platform. Always advise them to seek professional medical help for severe issues.'
+    };
+
+    const formattedHistory = Array.isArray(history) ? history.map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.content
+    })) : [];
+
+    const messages = [systemPrompt, ...formattedHistory, { role: 'user', content: message }];
+
+    const response = await axios.post(
+      'https://openrouter.ai/api/v1/chat/completions',
+      {
+        model: 'google/gemini-2.5-flash',
+        messages: messages,
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
+          'X-Title': 'Lifeline Medical Aid',
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000 // 15 seconds timeout
+      }
+    );
+
+    const reply = response.data?.choices?.[0]?.message?.content || "I'm sorry, I couldn't process that.";
+    
+    res.json({
+      success: true,
+      reply: reply
+    });
+    
+  } catch (error) {
+    console.error('Chatbot API Error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to communicate with AI provider. Please try again later.' 
+    });
+  }
+};
