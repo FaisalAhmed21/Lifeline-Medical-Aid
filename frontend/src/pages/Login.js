@@ -40,7 +40,7 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     // Redirect to backend Google OAuth
-    const backendUrl = process.env.REACT_APP_API_URL || 'https://lifeline-medical-aid-backend.onrender.com//api';
+    const backendUrl = process.env.REACT_APP_API_URL || '/api';
     console.log('Redirecting to Google OAuth:', `${backendUrl}/auth/google`);
     window.location.href = `${backendUrl}/auth/google`;
   };

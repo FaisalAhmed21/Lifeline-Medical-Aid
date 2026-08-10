@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "lifeline-medical-aid-fbc2e",
     "public": "build",
     "ignore": [
       "firebase.json",

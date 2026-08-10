@@ -1,18 +1,10 @@
 {
   "name": "lifeline-medical-aid",
   "version": "1.0.0",
-  "description": "Rural Medical Aid Coordination System",
-  "main": "index.js",
+  "description": "Unified MERN Stack for Lifeline Medical Aid",
   "scripts": {
-    "server": "cd backend && npm run dev",
-    "client": "cd frontend && npm start",
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
-  },
-  "keywords": ["medical", "healthcare", "mern"],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "concurrently": "^8.2.2"
+    "start": "node backend/server.js",
+    "install-deps": "npm install --prefix backend && npm install --prefix frontend",
+    "build": "npm run install-deps && npm run build --prefix frontend"
   }
 }
