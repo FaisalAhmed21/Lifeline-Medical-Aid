@@ -1,4 +1,5 @@
 const Hospital = require('../models/Hospital');
+const axios = require('axios');
 
 // Get nearby hospitals
 exports.getNearbyHospitals = async (req, res) => {
@@ -31,7 +32,109 @@ exports.getNearbyHospitals = async (req, res) => {
       filters
     );
 
-    console.log(`✅ Found ${hospitals.length} hospitals`);
+    console.log(`✅ Found ${hospitals.length} hospitals in database`);
+
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    const radius = parseInt(maxDistance);
+
+    // If DB is empty, use Overpass API as a proxy
+    if (hospitals.length === 0) {
+      console.log('MongoDB returned 0 hospitals. Fetching from OpenStreetMap API proxy...');
+      
+      const overpassQuery = `
+        [out:json][timeout:30];
+        (
+          node["amenity"="hospital"](around:${radius},${lat},${lng});
+          way["amenity"="hospital"](around:${radius},${lat},${lng});
+          node["amenity"="clinic"](around:${radius},${lat},${lng});
+          way["amenity"="clinic"](around:${radius},${lat},${lng});
+          node["healthcare"="hospital"](around:${radius},${lat},${lng});
+          way["healthcare"="hospital"](around:${radius},${lat},${lng});
+          node["amenity"="doctors"](around:${radius},${lat},${lng});
+          way["amenity"="doctors"](around:${radius},${lat},${lng});
+          node["healthcare"="clinic"](around:${radius},${lat},${lng});
+        );
+        out center;
+      `;
+
+      try {
+        const response = await axios.post('https://overpass-api.de/api/interpreter', overpassQuery, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          timeout: 25000
+        });
+
+        const data = response.data;
+        const processedIds = new Set();
+        const osmHospitals = [];
+
+        if (data && data.elements) {
+          data.elements.forEach(element => {
+            if (processedIds.has(element.id)) return;
+            processedIds.add(element.id);
+
+            const elLat = element.lat || (element.center && element.center.lat);
+            const elLng = element.lon || (element.center && element.center.lon);
+            if (!elLat || !elLng) return;
+
+            const tags = element.tags || {};
+            const name = tags.name || tags['name:en'] || 'Hospital/Clinic';
+            if (!tags.name && !tags['name:en'] && !tags.operator) return;
+
+            const distance = calculateDistance(lat, lng, elLat, elLng);
+
+            osmHospitals.push({
+              _id: element.id.toString(),
+              name: name,
+              type: tags.amenity === 'clinic' || tags.healthcare === 'clinic' || tags.amenity === 'doctors' ? 'clinic' : 'hospital',
+              address: {
+                street: tags['addr:full'] || tags['addr:street'] || 'Address not available',
+                city: tags['addr:city'] || '',
+                state: '',
+                zipCode: '',
+                country: ''
+              },
+              fullAddress: tags['addr:full'] || `${tags['addr:street'] || ''} ${tags['addr:city'] || ''}`.trim() || 'Address not available',
+              location: {
+                type: 'Point',
+                coordinates: [elLng, elLat]
+              },
+              contact: {
+                phone: tags.phone || tags['contact:phone'] || 'N/A',
+                email: tags.email || tags['contact:email'] || '',
+                website: tags.website || tags['contact:website'] || null
+              },
+              operatingHours: {
+                is24Hours: tags.emergency === 'yes' || tags.opening_hours === '24/7'
+              },
+              departments: [],
+              services: [],
+              amenities: {
+                ambulance: tags.emergency === 'yes',
+                emergencyRoom: tags.emergency === 'yes',
+                wheelchairAccess: tags.wheelchair === 'yes'
+              },
+              capacity: {
+                totalBeds: parseInt(tags.beds) || 0,
+                availableBeds: 0
+              },
+              distance: parseFloat(distance.toFixed(2))
+            });
+          });
+          
+          osmHospitals.sort((a, b) => a.distance - b.distance);
+
+          return res.status(200).json({
+            success: true,
+            count: osmHospitals.length,
+            data: osmHospitals
+          });
+        }
+      } catch (osmError) {
+        console.error('OSM API Proxy failed:', osmError.message);
+        // Fallback to empty response below
+      }
+    }
 
     // Calculate distance for each hospital
     const hospitalsWithDistance = hospitals.map(hospital => {

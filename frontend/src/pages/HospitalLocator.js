@@ -179,7 +179,7 @@ const HospitalLocator = () => {
     );
   };
 
-  const searchNearbyHospitals = async (retryCount = 0) => {
+  const searchNearbyHospitals = async () => {
     if (!userLocation) {
       toast.error('Please enable location first');
       return;
@@ -188,174 +188,46 @@ const HospitalLocator = () => {
     setLoading(true);
     const radiusKm = (searchRadius / 1000).toFixed(1);
     
-    console.log('🔍 Searching real hospitals using OpenStreetMap...');
-    console.log('📍 Your location:', `${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`);
-    console.log('📏 Search radius:', searchRadius, 'meters (', radiusKm, 'km)');
-    
+    console.log('🔍 Searching hospitals via backend proxy...');
     toast.info(`Searching hospitals within ${radiusKm}km...`, { autoClose: 2000 });
 
-    // List of Overpass API mirrors
-    const overpassUrls = [
-      'https://overpass-api.de/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter',
-      'https://overpass.openstreetmap.ru/api/interpreter'
-    ];
-
     try {
-      // Use Overpass API to find hospitals from OpenStreetMap
-      const radiusInMeters = searchRadius;
-      const overpassQuery = `
-        [out:json][timeout:30];
-        (
-          node["amenity"="hospital"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
-          way["amenity"="hospital"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
-          node["amenity"="clinic"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
-          way["amenity"="clinic"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
-          node["healthcare"="hospital"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
-          way["healthcare"="hospital"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
-          node["amenity"="doctors"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
-          way["amenity"="doctors"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
-          node["healthcare"="clinic"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
-        );
-        out body;
-        >;
-        out skel qt;
-      `;
-
-      const overpassUrl = overpassUrls[retryCount % overpassUrls.length];
-      console.log(`🌐 Using API server: ${overpassUrl}`);
+      const response = await api.get(`/hospitals/nearby?latitude=${userLocation.lat}&longitude=${userLocation.lng}&maxDistance=${searchRadius}`);
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 second timeout
-
-      const response = await fetch(overpassUrl, {
-        method: 'POST',
-        body: overpassQuery,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        if (response.status === 504 || response.status === 429) {
-          throw new Error(`Server busy (${response.status}). Will retry with different server...`);
-        }
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('📡 OpenStreetMap response:', data);
-      console.log('📊 Total elements received:', data.elements?.length || 0);
-
-      // Process the results
-      const hospitalData = [];
-      const processedIds = new Set();
-
-      data.elements.forEach(element => {
-        if (processedIds.has(element.id)) return;
-        
-        let lat, lng;
-        
-        if (element.type === 'node') {
-          lat = element.lat;
-          lng = element.lon;
-        } else if (element.type === 'way' && element.center) {
-          lat = element.center.lat;
-          lng = element.center.lon;
-        } else {
-          return; // Skip if no coordinates
-        }
-
-        const tags = element.tags || {};
-        const name = tags.name || tags['name:en'] || 'Hospital';
-        
-        // Skip if no name
-        if (!tags.name && !tags['name:en'] && !tags.operator) {
-          return;
-        }
-
-        // Calculate distance
-        const distance = calculateDistance(
-          userLocation.lat,
-          userLocation.lng,
-          lat,
-          lng
-        );
-
-        const hospital = {
-          id: element.id,
-          name: name,
-          address: tags['addr:full'] || 
-                   `${tags['addr:street'] || ''} ${tags['addr:housenumber'] || ''}`.trim() ||
-                   tags['addr:city'] || 
-                   'Address not available',
-          location: { lat, lng },
-          phone: tags.phone || tags['contact:phone'] || 'N/A',
-          website: tags.website || tags['contact:website'] || null,
-          operator: tags.operator || null,
-          emergency: tags.emergency === 'yes',
-          beds: tags.beds || null,
-          type: tags.amenity || tags.healthcare || 'hospital',
-          distance: parseFloat(distance),
-          opening_hours: tags.opening_hours || null,
-          is24x7: tags.opening_hours === '24/7',
-          wheelchair: tags.wheelchair === 'yes',
-          osmId: element.id,
-          osmType: element.type
-        };
-
-        hospitalData.push(hospital);
-        processedIds.add(element.id);
-      });
-
-      // Sort by distance
-      hospitalData.sort((a, b) => a.distance - b.distance);
-
-      console.log(`✅ Found ${hospitalData.length} real hospitals from OpenStreetMap!`);
+      const data = response.data;
       
-      if (hospitalData.length > 0) {
-        console.log('🏥 Nearest hospitals:', hospitalData.slice(0, 5).map(h => ({
+      if (data.success && data.data && data.data.length > 0) {
+        // Map backend response format to frontend format
+        const hospitalData = data.data.map(h => ({
+          id: h._id,
           name: h.name,
-          distance: `${h.distance}km`,
-          type: h.type
-        })));
-      }
+          address: h.fullAddress || h.address?.street || 'Address not available',
+          location: { lat: h.location.coordinates[1], lng: h.location.coordinates[0] },
+          phone: h.contact?.phone || 'N/A',
+          website: h.contact?.website || null,
+          operator: h.operator || null,
+          emergency: h.amenities?.emergencyRoom || h.amenities?.ambulance || false,
+          beds: h.capacity?.totalBeds || null,
+          wheelchair: h.amenities?.wheelchairAccess || false,
+          type: h.type || 'hospital',
+          distance: h.distance
+        }));
 
-      setHospitals(hospitalData);
-      setAllHospitals(hospitalData); // Cache all hospitals
-      setMaxFetchedRadius(searchRadius); // Update max fetched radius
-
-      if (hospitalData.length > 0) {
-        const nearest = hospitalData[0];
-        toast.success(`Found ${hospitalData.length} hospital(s)! Nearest: ${nearest.name} (${nearest.distance}km)`, {
-          autoClose: 4000
-        });
+        setAllHospitals(hospitalData);
+        setHospitals(hospitalData);
+        setMaxFetchedRadius(searchRadius);
+        
+        toast.success(`Found ${hospitalData.length} hospitals within ${radiusKm}km`);
+        
+        if (hospitalData.length > 0 && mapCenter[0] === userLocation.lat) {
+          setMapCenter([hospitalData[0].location.lat, hospitalData[0].location.lng]);
+          setMapZoom(13);
+        }
       } else {
-        console.log('⚠️ No hospitals found in this area');
-        toast.warning(`No hospitals found within ${(searchRadius/1000).toFixed(1)}km. Try increasing the search radius to 10-20km.`, {
-          autoClose: 5000
-        });
+        toast.warning(`No hospitals found within ${radiusKm}km. Try increasing the search radius.`);
+        setHospitals([]);
       }
-
-      setLoading(false);
     } catch (error) {
-      console.error('❌ Error fetching hospitals:', error);
-      console.error('Error details:', error.message);
-      
-      // Retry with different server if timeout/504 error and haven't retried 3 times yet
-      if ((error.message.includes('504') || error.message.includes('busy') || error.name === 'AbortError') && retryCount < 2) {
-        console.log(`🔄 Retrying with different server (attempt ${retryCount + 2}/3)...`);
-        toast.info(`Server busy, trying alternate server...`, { autoClose: 2000 });
-        setTimeout(() => {
-          searchNearbyHospitals(retryCount + 1);
-        }, 1000);
-        return;
-      }
-      
-      // Show user-friendly error message
       let errorMsg = 'Failed to load hospitals. ';
       if (error.name === 'AbortError') {
         errorMsg += 'Request timed out. Please try again.';
