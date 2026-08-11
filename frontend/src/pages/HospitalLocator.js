@@ -213,6 +213,9 @@ const HospitalLocator = () => {
           way["amenity"="clinic"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
           node["healthcare"="hospital"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
           way["healthcare"="hospital"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
+          node["amenity"="doctors"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
+          way["amenity"="doctors"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
+          node["healthcare"="clinic"](around:${radiusInMeters},${userLocation.lat},${userLocation.lng});
         );
         out body;
         >;
