@@ -41,19 +41,6 @@ app.use(passport.initialize());
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Root route (useful for platform checks like Render showing a simple response)
-app.get('/', (req, res) => {
-  res.type('html').send(`
-    <html>
-      <head><title>Lifeline API</title></head>
-      <body style="font-family: Arial, sans-serif; text-align:center; margin-top:40px;">
-        <h1>Lifeline Medical Aid — Backend</h1>
-        <p>Server is running. Use the <a href="/api/health">/api/health</a> endpoint for health checks.</p>
-        <p>Frontend: <a href="https://lifeline-medical-aid-fbc2e.web.app/">lifeline-medical-aid-fbc2e.web.app</a></p>
-      </body>
-    </html>
-  `);
-});
 
 // ----------------------------------------------------------------------
 // DATABASE CONNECTION (UPDATED)
