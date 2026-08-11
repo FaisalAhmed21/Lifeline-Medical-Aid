@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
 import { toast } from 'react-toastify';
 import { 
   FaHospital, 
@@ -221,7 +222,6 @@ const HospitalLocator = () => {
         
         if (hospitalData.length > 0 && mapCenter[0] === userLocation.lat) {
           setMapCenter([hospitalData[0].location.lat, hospitalData[0].location.lng]);
-          setMapZoom(13);
         }
       } else {
         toast.warning(`No hospitals found within ${radiusKm}km. Try increasing the search radius.`);
