@@ -163,7 +163,7 @@ exports.googleAuth = (req, res, next) => {
 exports.googleAuthCallback = (req, res, next) => {
   const passport = require('passport');
   // If unified hosting, CLIENT_URL can be empty to use relative paths
-  const clientUrl = process.env.CLIENT_URL !== undefined ? process.env.CLIENT_URL : 'http://localhost:3000';
+  const clientUrl = process.env.CLIENT_URL || '';
   
   console.log('🔐 Google OAuth callback received');
   console.log('Client URL:', clientUrl);
