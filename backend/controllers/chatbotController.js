@@ -35,6 +35,7 @@ exports.askChatbot = async (req, res) => {
       {
         model: 'google/gemini-2.5-flash',
         messages: messages,
+        max_tokens: 1000,
       },
       {
         headers: {
