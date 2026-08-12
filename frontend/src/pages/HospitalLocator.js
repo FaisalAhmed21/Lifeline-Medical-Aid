@@ -269,7 +269,8 @@ const HospitalLocator = () => {
       'popular': 'https://populardiagnosticcentre.com',
       'delta': 'https://delta-hospital.com',
       'aalok': 'https://aalokhealthcare.com',
-      'anwer khan': 'https://anwerkhan.com'
+      'anwer khan': 'https://anwerkhan.com',
+      'azmal': 'http://azmalhospital.com'
     };
 
     for (const [key, url] of Object.entries(knownHospitals)) {
