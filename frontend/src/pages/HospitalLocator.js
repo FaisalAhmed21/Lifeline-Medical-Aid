@@ -98,7 +98,6 @@ const HospitalLocator = () => {
     }
 
     setLoading(true);
-    toast.info('Getting your precise location... Please wait', { autoClose: 3000 });
     
     // First try: High accuracy with longer timeout
     navigator.geolocation.getCurrentPosition(
@@ -117,15 +116,6 @@ const HospitalLocator = () => {
         setUserLocation(location);
         setMapCenter([location.lat, location.lng]);
         
-        if (accuracy > 100) {
-          toast.warning(`Location detected but accuracy is ${Math.round(accuracy)}m. Click "Refresh Location" if incorrect.`, {
-            autoClose: 5000
-          });
-        } else {
-          toast.success(`✓ Location accurate within ${Math.round(accuracy)}m`, {
-            autoClose: 3000
-          });
-        }
         setLoading(false);
       },
       (error) => {
@@ -151,7 +141,6 @@ const HospitalLocator = () => {
                   };
                   setUserLocation(location);
                   setMapCenter([location.lat, location.lng]);
-                  toast.success('Location detected (approximate)');
                   setLoading(false);
                 },
                 (err) => {
