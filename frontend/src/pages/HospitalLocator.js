@@ -285,6 +285,8 @@ const HospitalLocator = () => {
     const url = getHospitalWebsite(hospital);
     if (url) {
       window.open(url, '_blank');
+    } else {
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(hospital.name + ' hospital official website')}`, '_blank');
     }
   };
 
@@ -304,16 +306,18 @@ const HospitalLocator = () => {
             <FaHospital className="hospital-icon" />
             <div>
               <h3 
-                className={`hospital-name ${getHospitalWebsite(hospital) ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}`}
+                className="hospital-name cursor-pointer hover:text-blue-600 transition-colors"
                 onClick={(e) => {
-                  if (getHospitalWebsite(hospital)) {
-                    e.stopPropagation();
-                    openHospitalWebsite(hospital);
-                  }
+                  e.stopPropagation();
+                  openHospitalWebsite(hospital);
                 }}
               >
                 {hospital.name}
-                {getHospitalWebsite(hospital) && <FaGlobe className="inline ml-2 text-blue-500 text-sm" />}
+                {getHospitalWebsite(hospital) ? (
+                  <FaGlobe className="inline ml-2 text-blue-500 text-sm" title="Official Website" />
+                ) : (
+                  <FaSearch className="inline ml-2 text-gray-400 text-sm" title="Search Web" />
+                )}
               </h3>
               <p className="hospital-type">
                 {hospital.distance} km away
@@ -598,23 +602,21 @@ const HospitalLocator = () => {
                             </p>
                           )}
                           <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                            {getHospitalWebsite(hospital) && (
-                              <button
-                                onClick={() => openHospitalWebsite(hospital)}
-                                style={{
-                                  background: '#2563EB',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '6px 12px',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer',
-                                  flex: 1,
-                                  fontSize: '13px'
-                                }}
-                              >
-                                🌐 Website
-                              </button>
-                            )}
+                            <button
+                              onClick={() => openHospitalWebsite(hospital)}
+                              style={{
+                                background: '#2563EB',
+                                color: 'white',
+                                border: 'none',
+                                padding: '6px 12px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                flex: 1,
+                                fontSize: '13px'
+                              }}
+                            >
+                              {getHospitalWebsite(hospital) ? '🌐 Website' : '🔍 Search'}
+                            </button>
                             <button
                               onClick={() => openDirections(hospital)}
                               style={{
@@ -651,11 +653,6 @@ const HospitalLocator = () => {
                     `${hospitals.length} Hospitals Found`
                   )}
                 </h3>
-                {!loading && hospitals.length > 0 && (
-                  <p className="text-xs text-gray-600 mt-1 italic">
-                    💡 Click hospital name to visit website
-                  </p>
-                )}
               </div>
               <div className="hospitals-list">
                 {hospitals.length === 0 && !loading ? (
@@ -681,16 +678,18 @@ const HospitalLocator = () => {
                     >
                       <div className="flex items-center justify-between">
                         <h4
-                          className={`flex-1 ${getHospitalWebsite(hospital) ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}`}
+                          className="flex-1 cursor-pointer hover:text-blue-600 transition-colors"
                           onClick={(e) => {
-                            if (getHospitalWebsite(hospital)) {
-                              e.stopPropagation();
-                              openHospitalWebsite(hospital);
-                            }
+                            e.stopPropagation();
+                            openHospitalWebsite(hospital);
                           }}
                         >
                           {hospital.name}
-                          {getHospitalWebsite(hospital) && <FaGlobe className="inline ml-2 text-blue-500 text-xs" />}
+                          {getHospitalWebsite(hospital) ? (
+                            <FaGlobe className="inline ml-2 text-blue-500 text-xs" title="Official Website" />
+                          ) : (
+                            <FaSearch className="inline ml-2 text-gray-400 text-xs" title="Search Web" />
+                          )}
                         </h4>
                       </div>
                       <p className="text-sm">
