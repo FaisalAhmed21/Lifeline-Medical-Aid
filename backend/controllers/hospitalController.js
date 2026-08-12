@@ -60,39 +60,36 @@ exports.getNearbyHospitals = async (req, res) => {
 
       const endpoints = [
         'https://overpass-api.de/api/interpreter',
-        'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-        'https://overpass.kumi.systems/api/interpreter'
+        'https://overpass.kumi.systems/api/interpreter',
+        'https://overpass.osm.ch/api/interpreter'
       ];
       
       let data = null;
-      let lastError = null;
 
-      for (const endpoint of endpoints) {
-        try {
-          const response = await axios.post(endpoint, `data=${encodeURIComponent(overpassQuery)}`, {
+      try {
+        // Fetch from all endpoints in parallel and take the first one that succeeds
+        const requests = endpoints.map(endpoint => 
+          axios.post(endpoint, `data=${encodeURIComponent(overpassQuery)}`, {
             headers: { 
               'Content-Type': 'application/x-www-form-urlencoded',
               'User-Agent': 'LifelineMedicalAid/1.0',
               'Accept': '*/*'
             },
-            timeout: 15000
-          });
-          
-          if (response.data && response.data.elements) {
-            data = response.data;
-            break;
-          }
-        } catch (error) {
-          console.log(`Endpoint ${endpoint} failed:`, error.message);
-          lastError = error;
-        }
-      }
-
-      if (!data) {
-        console.error('All OSM API endpoints failed');
+            timeout: 15000 // 15 seconds max
+          }).then(response => {
+            if (response.data && response.data.elements) {
+              return response.data;
+            }
+            throw new Error('Invalid response data');
+          })
+        );
+        
+        data = await Promise.any(requests);
+      } catch (aggregateError) {
+        console.error('All OSM API endpoints failed:', aggregateError.message);
         return res.status(500).json({
           success: false,
-          error: 'OSM API failed to fetch data from all endpoints. ' + (lastError?.response?.status === 429 ? 'Too many requests.' : lastError?.message)
+          error: 'OSM API failed to fetch data. All servers are currently busy or rate-limiting.'
         });
       }
 
