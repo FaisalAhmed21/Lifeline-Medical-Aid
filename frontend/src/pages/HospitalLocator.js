@@ -78,9 +78,7 @@ const HospitalLocator = () => {
         const filtered = allHospitals.filter(h => h.distance <= searchRadius / 1000);
         setHospitals(filtered);
         if (filtered.length > 0) {
-          toast.success(`Showing ${filtered.length} hospital(s) within ${(searchRadius/1000).toFixed(1)}km (from cache)`, {
-            autoClose: 2000
-          });
+          // Silent cache filtering
         }
         return;
       }
@@ -190,7 +188,6 @@ const HospitalLocator = () => {
     const radiusKm = (searchRadius / 1000).toFixed(1);
     
     console.log('🔍 Searching hospitals via backend proxy...');
-    toast.info(`Searching hospitals within ${radiusKm}km...`, { autoClose: 2000 });
 
     try {
       const response = await api.get(`/hospitals/nearby?latitude=${userLocation.lat}&longitude=${userLocation.lng}&maxDistance=${searchRadius}`);
@@ -217,9 +214,7 @@ const HospitalLocator = () => {
         setAllHospitals(hospitalData);
         setHospitals(hospitalData);
         setMaxFetchedRadius(searchRadius);
-        
-        toast.success(`Found ${hospitalData.length} hospitals within ${radiusKm}km`);
-        
+        // Update map center to the first hospital found
         if (hospitalData.length > 0 && mapCenter[0] === userLocation.lat) {
           setMapCenter([hospitalData[0].location.lat, hospitalData[0].location.lng]);
         }
@@ -268,7 +263,6 @@ const HospitalLocator = () => {
   const openHospitalWebsite = (hospital) => {
     if (hospital.website) {
       window.open(hospital.website, '_blank');
-      toast.success(`Opening ${hospital.name} website`);
       return;
     }
 
@@ -297,7 +291,6 @@ const HospitalLocator = () => {
     for (const [key, url] of Object.entries(knownHospitals)) {
       if (hospitalName.includes(key)) {
         window.open(url, '_blank');
-        toast.success(`Opening ${hospital.name} website`);
         return;
       }
     }
@@ -305,7 +298,6 @@ const HospitalLocator = () => {
     // If not found, open Google search that shows website in results
     const searchQuery = encodeURIComponent(`${hospital.name} Bangladesh hospital website`);
     window.open(`https://www.google.com/search?q=${searchQuery}`, '_blank');
-    toast.info(`Searching for ${hospital.name} website...`);
   };
 
   const callHospital = (phone) => {
@@ -650,14 +642,19 @@ const HospitalLocator = () => {
               <div className="sidebar-header">
                 <h3>
                   {loading ? (
-                    <FaSpinner className="animate-spin" />
+                    <span className="flex items-center gap-2">
+                      <FaSpinner className="animate-spin" />
+                      Searching...
+                    </span>
                   ) : (
                     `${hospitals.length} Hospitals Found`
                   )}
                 </h3>
-                <p className="text-xs text-gray-600 mt-1 italic">
-                  💡 Click hospital name to search their website
-                </p>
+                {!loading && hospitals.length > 0 && (
+                  <p className="text-xs text-gray-600 mt-1 italic">
+                    💡 Click hospital name to visit website
+                  </p>
+                )}
               </div>
               <div className="hospitals-list">
                 {hospitals.length === 0 && !loading ? (
