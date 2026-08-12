@@ -45,8 +45,11 @@ exports.getNearbyHospitals = async (req, res) => {
       const overpassQuery = `
         [out:json][timeout:25];
         (
-          nwr["amenity"~"clinic|doctors|hospital"](around:${radius},${lat},${lng});
-          nwr["healthcare"~"clinic|hospital"](around:${radius},${lat},${lng});
+          nwr["amenity"="clinic"](around:${radius},${lat},${lng});
+          nwr["amenity"="hospital"](around:${radius},${lat},${lng});
+          nwr["amenity"="doctors"](around:${radius},${lat},${lng});
+          nwr["healthcare"="clinic"](around:${radius},${lat},${lng});
+          nwr["healthcare"="hospital"](around:${radius},${lat},${lng});
         );
         out center;
       `;
