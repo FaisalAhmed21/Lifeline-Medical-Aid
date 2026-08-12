@@ -257,7 +257,8 @@ const HospitalLocator = () => {
   };
 
   const openDirections = (hospital) => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${hospital.location.lat},${hospital.location.lng}`;
+    const destination = encodeURIComponent(`${hospital.name} ${hospital.address !== 'Address not available' ? hospital.address : ''}`.trim());
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
     window.open(url, '_blank');
   };
 
@@ -277,7 +278,8 @@ const HospitalLocator = () => {
       'ibn sina': 'https://ibnsina.com.bd',
       'evercare': 'https://evercarebd.com',
       'popular': 'https://populardiagnosticcentre.com',
-      'delta': 'https://www.deltahealthcare.com',
+      'delta': 'https://delta-hospital.com',
+      'aalok': 'https://aalokhealthcare.com',
       'anwer khan': 'https://anwerkhan.com'
     };
 
@@ -370,17 +372,26 @@ const HospitalLocator = () => {
         </div>
 
         <div className="hospital-actions">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              callHospital(hospital.phone);
-            }}
-            className="action-btn call-btn"
-            disabled={hospital.phone === 'N/A'}
-          >
-            <FaPhone />
-            Call
-          </button>
+          {hospital.phone && hospital.phone !== 'N/A' ? (
+            <a
+              href={`tel:${hospital.phone}`}
+              onClick={(e) => e.stopPropagation()}
+              className="action-btn call-btn"
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
+            >
+              <FaPhone />
+              Call
+            </a>
+          ) : (
+            <button
+              className="action-btn call-btn"
+              disabled={true}
+              title="Phone number not available"
+            >
+              <FaPhone />
+              Call
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
