@@ -60,7 +60,11 @@ exports.getNearbyHospitals = async (req, res) => {
 
       try {
         const response = await axios.post('https://overpass-api.de/api/interpreter', overpassQuery, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          headers: { 
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'LifelineMedicalAid/1.0',
+            'Accept': '*/*'
+          },
           timeout: 25000
         });
 
