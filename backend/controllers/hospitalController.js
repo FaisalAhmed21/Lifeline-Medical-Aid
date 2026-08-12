@@ -58,85 +58,114 @@ exports.getNearbyHospitals = async (req, res) => {
         out center;
       `;
 
-      try {
-        const response = await axios.post('https://overpass-api.de/api/interpreter', overpassQuery, {
-          headers: { 
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'LifelineMedicalAid/1.0',
-            'Accept': '*/*'
-          },
-          timeout: 25000
-        });
+      const endpoints = [
+        'https://overpass-api.de/api/interpreter',
+        'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+        'https://overpass.kumi.systems/api/interpreter'
+      ];
+      
+      let data = null;
+      let lastError = null;
 
-        const data = response.data;
+      for (const endpoint of endpoints) {
+        try {
+          const response = await axios.post(endpoint, `data=${encodeURIComponent(overpassQuery)}`, {
+            headers: { 
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'User-Agent': 'LifelineMedicalAid/1.0',
+              'Accept': '*/*'
+            },
+            timeout: 15000
+          });
+          
+          if (response.data && response.data.elements) {
+            data = response.data;
+            break;
+          }
+        } catch (error) {
+          console.log(`Endpoint ${endpoint} failed:`, error.message);
+          lastError = error;
+        }
+      }
+
+      if (!data) {
+        console.error('All OSM API endpoints failed');
+        return res.status(500).json({
+          success: false,
+          error: 'OSM API failed to fetch data from all endpoints. ' + (lastError?.response?.status === 429 ? 'Too many requests.' : lastError?.message)
+        });
+      }
+
+      try {
         const processedIds = new Set();
         const osmHospitals = [];
 
-        if (data && data.elements) {
-          data.elements.forEach(element => {
-            if (processedIds.has(element.id)) return;
-            processedIds.add(element.id);
+        data.elements.forEach(element => {
+          if (processedIds.has(element.id)) return;
+          processedIds.add(element.id);
 
-            const elLat = element.lat || (element.center && element.center.lat);
-            const elLng = element.lon || (element.center && element.center.lon);
-            if (!elLat || !elLng) return;
+          const elLat = element.lat || (element.center && element.center.lat);
+          const elLng = element.lon || (element.center && element.center.lon);
+          if (!elLat || !elLng) return;
 
-            const tags = element.tags || {};
-            const name = tags.name || tags['name:en'] || 'Hospital/Clinic';
-            if (!tags.name && !tags['name:en'] && !tags.operator) return;
+          const tags = element.tags || {};
+          const name = tags.name || tags['name:en'] || 'Hospital/Clinic';
+          if (!tags.name && !tags['name:en'] && !tags.operator) return;
 
-            const distance = calculateDistance(lat, lng, elLat, elLng);
+          const distance = calculateDistance(lat, lng, elLat, elLng);
 
-            osmHospitals.push({
-              _id: element.id.toString(),
-              name: name,
-              type: tags.amenity === 'clinic' || tags.healthcare === 'clinic' || tags.amenity === 'doctors' ? 'clinic' : 'hospital',
-              address: {
-                street: tags['addr:full'] || tags['addr:street'] || 'Address not available',
-                city: tags['addr:city'] || '',
-                state: '',
-                zipCode: '',
-                country: ''
-              },
-              fullAddress: tags['addr:full'] || `${tags['addr:street'] || ''} ${tags['addr:city'] || ''}`.trim() || 'Address not available',
-              location: {
-                type: 'Point',
-                coordinates: [elLng, elLat]
-              },
-              contact: {
-                phone: tags.phone || tags['contact:phone'] || 'N/A',
-                email: tags.email || tags['contact:email'] || '',
-                website: tags.website || tags['contact:website'] || null
-              },
-              operatingHours: {
-                is24Hours: tags.emergency === 'yes' || tags.opening_hours === '24/7'
-              },
-              departments: [],
-              services: [],
-              amenities: {
-                ambulance: tags.emergency === 'yes',
-                emergencyRoom: tags.emergency === 'yes',
-                wheelchairAccess: tags.wheelchair === 'yes'
-              },
-              capacity: {
-                totalBeds: parseInt(tags.beds) || 0,
-                availableBeds: 0
-              },
-              distance: parseFloat(distance.toFixed(2))
-            });
+          osmHospitals.push({
+            _id: element.id.toString(),
+            name: name,
+            type: tags.amenity === 'clinic' || tags.healthcare === 'clinic' || tags.amenity === 'doctors' ? 'clinic' : 'hospital',
+            address: {
+              street: tags['addr:full'] || tags['addr:street'] || 'Address not available',
+              city: tags['addr:city'] || '',
+              state: '',
+              zipCode: '',
+              country: ''
+            },
+            fullAddress: tags['addr:full'] || `${tags['addr:street'] || ''} ${tags['addr:city'] || ''}`.trim() || 'Address not available',
+            location: {
+              type: 'Point',
+              coordinates: [elLng, elLat]
+            },
+            contact: {
+              phone: tags.phone || tags['contact:phone'] || 'N/A',
+              email: tags.email || tags['contact:email'] || '',
+              website: tags.website || tags['contact:website'] || null
+            },
+            operatingHours: {
+              is24Hours: tags.emergency === 'yes' || tags.opening_hours === '24/7'
+            },
+            departments: [],
+            services: [],
+            amenities: {
+              ambulance: tags.emergency === 'yes',
+              emergencyRoom: tags.emergency === 'yes',
+              wheelchairAccess: tags.wheelchair === 'yes'
+            },
+            capacity: {
+              totalBeds: parseInt(tags.beds) || 0,
+              availableBeds: 0
+            },
+            distance: parseFloat(distance.toFixed(2))
           });
-          
-          osmHospitals.sort((a, b) => a.distance - b.distance);
+        });
+        
+        osmHospitals.sort((a, b) => a.distance - b.distance);
 
-          return res.status(200).json({
-            success: true,
-            count: osmHospitals.length,
-            data: osmHospitals
-          });
-        }
+        return res.status(200).json({
+          success: true,
+          count: osmHospitals.length,
+          data: osmHospitals
+        });
       } catch (osmError) {
         console.error('OSM API Proxy failed:', osmError.message);
-        // Fallback to empty response below
+        return res.status(500).json({
+          success: false,
+          error: 'OSM API failed to parse data. ' + osmError.message
+        });
       }
     }
 
