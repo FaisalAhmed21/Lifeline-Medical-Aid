@@ -3,10 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { FaMicrophone, FaStop } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const VoiceCommand = ({ onCommand }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isSupported, setIsSupported] = useState(false);
@@ -73,13 +76,16 @@ const VoiceCommand = ({ onCommand }) => {
     // English commands
     const callHelpPatterns = ['call help', 'need help', 'emergency', 'help me', 'send help'];
     const sendLocationPatterns = ['send my location', 'share location', 'send location', 'where am i'];
+    const findHospitalPatterns = ['find hospital', 'search hospital', 'hospital nearby', 'where is a hospital', 'need a hospital', 'hospital'];
     
     // Bangla commands (phonetic)
     const callHelpPatternsBn = ['সাহায্য চাই', 'হেল্প', 'জরুরি', 'সাহায্য', 'বাঁচাও'];
     const sendLocationPatternsBn = ['আমার লোকেশন পাঠাও', 'অবস্থান পাঠাও', 'লোকেশন শেয়ার'];
+    const findHospitalPatternsBn = ['হাসপাতাল', 'হাসপাতাল খুঁজুন'];
 
     const allCallHelp = [...callHelpPatterns, ...callHelpPatternsBn];
     const allSendLocation = [...sendLocationPatterns, ...sendLocationPatternsBn];
+    const allFindHospital = [...findHospitalPatterns, ...findHospitalPatternsBn];
 
     // Check for call help command
     if (allCallHelp.some(pattern => command.includes(pattern))) {
@@ -88,6 +94,10 @@ const VoiceCommand = ({ onCommand }) => {
     // Check for send location command
     else if (allSendLocation.some(pattern => command.includes(pattern))) {
       handleSendLocation();
+    }
+    // Check for find hospital command
+    else if (allFindHospital.some(pattern => command.includes(pattern))) {
+      handleFindHospital();
     }
     else {
       // Unknown command
@@ -169,6 +179,11 @@ const VoiceCommand = ({ onCommand }) => {
         }
       );
     }
+  };
+
+  const handleFindHospital = () => {
+    toast.success('Navigating to Hospital Locator...');
+    navigate('/hospitals');
   };
 
   const speak = (text) => {
