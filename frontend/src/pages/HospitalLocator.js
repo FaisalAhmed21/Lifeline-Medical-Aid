@@ -237,6 +237,7 @@ const HospitalLocator = () => {
       toast.error(errorMsg, {
         autoClose: 6000
       });
+    } finally {
       setLoading(false);
     }
   };
@@ -260,17 +261,10 @@ const HospitalLocator = () => {
     window.open(url, '_blank');
   };
 
-  const openHospitalWebsite = (hospital) => {
-    if (hospital.website) {
-      window.open(hospital.website, '_blank');
-      return;
-    }
+  const getHospitalWebsite = (hospital) => {
+    if (hospital.website) return hospital.website;
 
-    // Try to construct common Bangladesh hospital website patterns
     const hospitalName = hospital.name.toLowerCase();
-    const commonUrls = [];
-
-    // Pattern 1: Common hospital names with known domains
     const knownHospitals = {
       'square': 'https://squarehospitaldhaka.com',
       'apollo': 'https://www.apollodhaka.com',
@@ -287,17 +281,19 @@ const HospitalLocator = () => {
       'anwer khan': 'https://anwerkhan.com'
     };
 
-    // Check if hospital name contains any known hospital
     for (const [key, url] of Object.entries(knownHospitals)) {
       if (hospitalName.includes(key)) {
-        window.open(url, '_blank');
-        return;
+        return url;
       }
     }
+    return null;
+  };
 
-    // If not found, open Google search that shows website in results
-    const searchQuery = encodeURIComponent(`${hospital.name} Bangladesh hospital website`);
-    window.open(`https://www.google.com/search?q=${searchQuery}`, '_blank');
+  const openHospitalWebsite = (hospital) => {
+    const url = getHospitalWebsite(hospital);
+    if (url) {
+      window.open(url, '_blank');
+    }
   };
 
   const callHospital = (phone) => {
@@ -316,14 +312,16 @@ const HospitalLocator = () => {
             <FaHospital className="hospital-icon" />
             <div>
               <h3 
-                className="hospital-name cursor-pointer hover:text-blue-600 transition-colors"
+                className={`hospital-name ${getHospitalWebsite(hospital) ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}`}
                 onClick={(e) => {
-                  e.stopPropagation();
-                  openHospitalWebsite(hospital);
+                  if (getHospitalWebsite(hospital)) {
+                    e.stopPropagation();
+                    openHospitalWebsite(hospital);
+                  }
                 }}
               >
                 {hospital.name}
-                <FaGlobe className="inline ml-2 text-blue-500 text-sm" />
+                {getHospitalWebsite(hospital) && <FaGlobe className="inline ml-2 text-blue-500 text-sm" />}
               </h3>
               <p className="hospital-type">
                 {hospital.distance} km away
@@ -599,21 +597,23 @@ const HospitalLocator = () => {
                             </p>
                           )}
                           <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                            <button
-                              onClick={() => openHospitalWebsite(hospital)}
-                              style={{
-                                background: '#2563EB',
-                                color: 'white',
-                                border: 'none',
-                                padding: '6px 12px',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                flex: 1,
-                                fontSize: '13px'
-                              }}
-                            >
-                              🌐 Website
-                            </button>
+                            {getHospitalWebsite(hospital) && (
+                              <button
+                                onClick={() => openHospitalWebsite(hospital)}
+                                style={{
+                                  background: '#2563EB',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '6px 12px',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  flex: 1,
+                                  fontSize: '13px'
+                                }}
+                              >
+                                🌐 Website
+                              </button>
+                            )}
                             <button
                               onClick={() => openDirections(hospital)}
                               style={{
@@ -680,14 +680,16 @@ const HospitalLocator = () => {
                     >
                       <div className="flex items-center justify-between">
                         <h4
-                          className="cursor-pointer hover:text-blue-600 transition-colors flex-1"
+                          className={`flex-1 ${getHospitalWebsite(hospital) ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}`}
                           onClick={(e) => {
-                            e.stopPropagation();
-                            openHospitalWebsite(hospital);
+                            if (getHospitalWebsite(hospital)) {
+                              e.stopPropagation();
+                              openHospitalWebsite(hospital);
+                            }
                           }}
                         >
                           {hospital.name}
-                          <FaGlobe className="inline ml-2 text-blue-500 text-xs" />
+                          {getHospitalWebsite(hospital) && <FaGlobe className="inline ml-2 text-blue-500 text-xs" />}
                         </h4>
                       </div>
                       <p className="text-sm">
