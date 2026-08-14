@@ -24,17 +24,9 @@ const WearableDeviceIntegration = () => {
 
   const connectDevice = async () => {
     try {
-      // Request Bluetooth device with standard health services
+      // Use acceptAllDevices so strict name/service filters don't hide the Redmi Watch
       const bleDevice = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: ['heart_rate'] },
-          { services: ['health_thermometer'] },
-          { services: [0x1822] }, // Pulse Oximeter service UUID
-          { namePrefix: 'Fit' },
-          { namePrefix: 'Health' },
-          { namePrefix: 'Mi' },
-          { namePrefix: 'Galaxy' }
-        ],
+        acceptAllDevices: true,
         optionalServices: ['battery_service', 'device_information', 0x1822, 'heart_rate', 'health_thermometer']
       });
 
