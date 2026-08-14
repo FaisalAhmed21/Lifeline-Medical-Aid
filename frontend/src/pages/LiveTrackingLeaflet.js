@@ -77,7 +77,13 @@ const LiveTrackingLeaflet = () => {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    const socket = io('https://lifeline-medical-aid-backend.onrender.com/');
+    const socket = io('https://lifeline-medical-aid-backend.onrender.com/', {
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      transports: ['websocket', 'polling']
+    });
     socketRef.current = socket;
 
     socket.on('connect', () => {

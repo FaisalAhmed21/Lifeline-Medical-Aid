@@ -11,6 +11,7 @@ const LiveTracking = () => {
   const { t } = useTranslation();
   const socketRef = useRef(null);
   const mapRef = useRef(null);
+  const wakeLockRef = useRef(null);
   
   const [emergency, setEmergency] = useState(null);
   const [helperLocations, setHelperLocations] = useState({});
@@ -18,9 +19,56 @@ const LiveTracking = () => {
   const [loading, setLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState('Connecting...');
 
-  // Initialize Socket.IO connection
+  // ---- Wake Lock: Keep screen awake during tracking ----
   useEffect(() => {
-    const socket = io('https://lifeline-medical-aid-backend.onrender.com/');
+    const requestWakeLock = async () => {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+          console.log('🔒 Wake Lock acquired — screen will stay on during tracking');
+
+          wakeLockRef.current.addEventListener('release', () => {
+            console.log('🔓 Wake Lock released');
+          });
+        } catch (err) {
+          console.warn('Wake Lock request failed:', err.message);
+        }
+      }
+    };
+
+    requestWakeLock();
+
+    // Re-acquire wake lock when page becomes visible again
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && 'wakeLock' in navigator) {
+        try {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+          console.log('🔒 Wake Lock re-acquired after tab switch');
+        } catch (err) {
+          console.warn('Wake Lock re-request failed:', err.message);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
+      }
+    };
+  }, []);
+
+  // Initialize Socket.IO connection with resilient reconnection
+  useEffect(() => {
+    const socket = io('https://lifeline-medical-aid-backend.onrender.com/', {
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      transports: ['websocket', 'polling']
+    });
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -35,7 +83,12 @@ const LiveTracking = () => {
     });
 
     socket.on('disconnect', () => {
-      setConnectionStatus('Disconnected');
+      setConnectionStatus('Reconnecting...');
+    });
+
+    socket.on('reconnect', (attemptNumber) => {
+      console.log(`Reconnected after ${attemptNumber} attempts`);
+      setConnectionStatus('Connected');
     });
 
     // Listen for helper location updates

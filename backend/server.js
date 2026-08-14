@@ -23,6 +23,7 @@ const orderRoutes = require('./routes/order');
 const prescriptionRoutes = require('./routes/prescription');
 const debugRoutes = require('./routes/debug');
 const chatbotRoutes = require('./routes/chatbot');
+const paymentRoutes = require('./routes/payment');
 
 // Import passport config
 require('./config/passport');
@@ -77,6 +78,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 app.use('/api/debug', debugRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -121,7 +123,10 @@ const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
     credentials: true
-  }
+  },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  transports: ['websocket', 'polling']
 });
 
 // Store active users and their socket connections

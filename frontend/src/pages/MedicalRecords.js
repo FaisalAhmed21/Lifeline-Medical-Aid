@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { FaFileUpload, FaDownload, FaEye, FaFilePdf, FaFileImage, FaFileAlt, FaTrash } from 'react-icons/fa';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import Tesseract from 'tesseract.js';
 
 const MedicalRecords = () => {
   const { t } = useTranslation();
@@ -15,6 +16,9 @@ const MedicalRecords = () => {
   const [fileType, setFileType] = useState('test_result');
   const [description, setDescription] = useState('');
   const [editingRecord, setEditingRecord] = useState(null);
+  const [ocrText, setOcrText] = useState('');
+  const [ocrProgress, setOcrProgress] = useState(0);
+  const [isOcrRunning, setIsOcrRunning] = useState(false);
   
   // New form fields
   const [formData, setFormData] = useState({
@@ -194,6 +198,13 @@ const MedicalRecords = () => {
       
       console.log('✅ Upload successful:', response.data);
       alert(t('uploadComplete') || 'File uploaded successfully!');
+
+      // Run OCR if the file is an image
+      const imageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/bmp'];
+      if (imageTypes.includes(selectedFile.type)) {
+        runOCR(selectedFile);
+      }
+
       setSelectedFile(null);
       setDescription('');
       document.querySelector('input[type="file"]').value = '';
@@ -205,6 +216,32 @@ const MedicalRecords = () => {
       alert(`${t('uploadFailed') || 'Upload failed'}: ${errorMsg}`);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const runOCR = async (file) => {
+    setIsOcrRunning(true);
+    setOcrProgress(0);
+    setOcrText('');
+    try {
+      const result = await Tesseract.recognize(
+        file,
+        'eng+ben', // English + Bengali
+        {
+          logger: (m) => {
+            if (m.status === 'recognizing text') {
+              setOcrProgress(Math.round(m.progress * 100));
+            }
+          }
+        }
+      );
+      setOcrText(result.data.text);
+      console.log('🔍 OCR Extracted Text:', result.data.text);
+    } catch (error) {
+      console.error('OCR Error:', error);
+      setOcrText('OCR extraction failed. Please enter details manually.');
+    } finally {
+      setIsOcrRunning(false);
     }
   };
 
@@ -433,6 +470,53 @@ const MedicalRecords = () => {
           </button>
         </form>
       </div>
+
+      {/* OCR Results Section */}
+      {(isOcrRunning || ocrText) && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            🔍 OCR Text Extraction
+          </h2>
+          
+          {isOcrRunning && (
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                <span className="text-blue-600 font-medium">Extracting text from image... {ocrProgress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div 
+                  className="bg-blue-500 h-3 rounded-full transition-all duration-300"
+                  style={{ width: `${ocrProgress}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
+
+          {ocrText && !isOcrRunning && (
+            <div>
+              <p className="text-sm text-gray-500 mb-2">Extracted text from your uploaded prescription/document:</p>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto">
+                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono">{ocrText}</pre>
+              </div>
+              <div className="flex gap-3 mt-3">
+                <button
+                  onClick={() => navigator.clipboard.writeText(ocrText).then(() => alert('Copied to clipboard!'))}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-all"
+                >
+                  📋 Copy Text
+                </button>
+                <button
+                  onClick={() => setOcrText('')}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm transition-all"
+                >
+                  ✕ Dismiss
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Records List */}
       <div className="bg-white rounded-lg shadow-md p-6">

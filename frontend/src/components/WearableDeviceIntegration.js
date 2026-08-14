@@ -24,79 +24,113 @@ const WearableDeviceIntegration = () => {
 
   const connectDevice = async () => {
     try {
-      // Request Bluetooth device
-      const device = await navigator.bluetooth.requestDevice({
+      // Request Bluetooth device with standard health services
+      const bleDevice = await navigator.bluetooth.requestDevice({
         filters: [
           { services: ['heart_rate'] },
           { services: ['health_thermometer'] },
+          { services: [0x1822] }, // Pulse Oximeter service UUID
           { namePrefix: 'Fit' },
-          { namePrefix: 'Health' }
+          { namePrefix: 'Health' },
+          { namePrefix: 'Mi' },
+          { namePrefix: 'Galaxy' }
         ],
-        optionalServices: ['battery_service', 'device_information']
+        optionalServices: ['battery_service', 'device_information', 0x1822, 'heart_rate', 'health_thermometer']
       });
 
-      setDevice(device);
-      device.addEventListener('gattserverdisconnected', onDisconnected);
+      setDevice(bleDevice);
+      bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
       // Connect to GATT Server
-      const server = await device.gatt.connect();
+      const server = await bleDevice.gatt.connect();
       setIsConnected(true);
 
       // Start reading vital signs
       startMonitoring(server);
     } catch (error) {
       console.error('Bluetooth connection error:', error);
-      alert(t('bluetoothConnectionFailed'));
+      alert(t('bluetoothConnectionFailed') || 'Failed to connect to Bluetooth device. Make sure your device is nearby and in pairing mode.');
     }
   };
 
   const startMonitoring = async (server) => {
     try {
-      // Heart Rate Service
+      // Heart Rate Service (standard BLE GATT)
       try {
         const heartRateService = await server.getPrimaryService('heart_rate');
         const heartRateMeasurement = await heartRateService.getCharacteristic('heart_rate_measurement');
         
         heartRateMeasurement.addEventListener('characteristicvaluechanged', (event) => {
           const value = event.target.value;
-          const heartRate = value.getUint8(1);
+          // Bit 0 of Flags: 0 = HR is uint8, 1 = HR is uint16
+          const flags = value.getUint8(0);
+          let heartRate;
+          if (flags & 0x01) {
+            heartRate = value.getUint16(1, true);
+          } else {
+            heartRate = value.getUint8(1);
+          }
           updateVitalSign('heartRate', heartRate);
         });
         
         await heartRateMeasurement.startNotifications();
+        console.log('❤️ Heart Rate BLE notifications started');
       } catch (e) {
-        console.log('Heart rate service not available');
+        console.log('Heart rate service not available:', e.message);
       }
 
-      // Health Thermometer Service
+      // Health Thermometer Service (standard BLE GATT)
       try {
         const thermometerService = await server.getPrimaryService('health_thermometer');
         const temperatureMeasurement = await thermometerService.getCharacteristic('temperature_measurement');
         
         temperatureMeasurement.addEventListener('characteristicvaluechanged', (event) => {
           const value = event.target.value;
-          const temperature = value.getFloat32(1, true);
-          updateVitalSign('temperature', temperature);
+          // IEEE 11073 FLOAT format: exponent in byte 4, mantissa in bytes 1-3
+          const mantissa = value.getUint8(1) | (value.getUint8(2) << 8) | (value.getUint8(3) << 16);
+          const exponent = value.getInt8(4);
+          const temperature = mantissa * Math.pow(10, exponent);
+          updateVitalSign('temperature', parseFloat(temperature.toFixed(1)));
         });
         
         await temperatureMeasurement.startNotifications();
+        console.log('🌡️ Temperature BLE notifications started');
       } catch (e) {
-        console.log('Temperature service not available');
+        console.log('Temperature service not available:', e.message);
       }
 
-      // Note: Oxygen level might use custom service depending on device
-      // This is a simulated example
-      simulateOxygenReading();
+      // Pulse Oximeter Service (standard BLE GATT UUID 0x1822)
+      try {
+        const pulseOxService = await server.getPrimaryService(0x1822);
+        // PLX Continuous Measurement characteristic (0x2A5F)
+        const plxMeasurement = await pulseOxService.getCharacteristic(0x2A5F);
+        
+        plxMeasurement.addEventListener('characteristicvaluechanged', (event) => {
+          const value = event.target.value;
+          // SpO2 is a SFLOAT at offset 1 (bytes 1-2)
+          const spo2 = value.getUint16(1, true) / 10; // Convert SFLOAT
+          updateVitalSign('oxygenLevel', Math.round(spo2));
+        });
+
+        await plxMeasurement.startNotifications();
+        console.log('🫁 Pulse Oximeter BLE notifications started');
+      } catch (e) {
+        console.log('Pulse Oximeter service not available, using fallback:', e.message);
+        // Fallback: If no SpO2 hardware is available, use simulated data
+        simulateOxygenReading();
+      }
     } catch (error) {
       console.error('Error starting monitoring:', error);
     }
   };
 
   const simulateOxygenReading = () => {
-    // Many wearables don't expose SpO2 via standard Bluetooth profiles
-    // This simulates reading or you'd need device-specific APIs
-    setInterval(() => {
-      // In real implementation, this would read from the device
+    // Fallback for devices that don't expose SpO2 via standard BLE profiles
+    const interval = setInterval(() => {
+      if (!device?.gatt?.connected) {
+        clearInterval(interval);
+        return;
+      }
       const randomSpO2 = 95 + Math.floor(Math.random() * 5);
       updateVitalSign('oxygenLevel', randomSpO2);
     }, 5000);

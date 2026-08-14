@@ -30,6 +30,7 @@ import AvailabilityScheduling from './pages/AvailabilityScheduling';
 import MedicalRecords from './pages/MedicalRecords';
 import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
+import { PaymentSuccess, PaymentCancelled } from './components/PaymentPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -56,7 +57,13 @@ function App() {
       const userJson = localStorage.getItem('user');
       const user = userJson ? JSON.parse(userJson) : null;
       if (!user || !user._id) return;
-      const socket = io(process.env.REACT_APP_API_URL?.replace('/api', '') || 'https://lifeline-medical-aid-backend.onrender.com/');
+      const socket = io(process.env.REACT_APP_API_URL?.replace('/api', '') || 'https://lifeline-medical-aid-backend.onrender.com/', {
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        transports: ['websocket', 'polling']
+      });
       socket.on('connect', () => {
         socket.emit('join', user._id);
       });
@@ -234,6 +241,10 @@ function App() {
             </ProtectedRoute>
           }
         />
+        
+        {/* Payment Routes */}
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+        <Route path="/payment/cancelled" element={<PaymentCancelled />} />
         
         <Route path="*" element={<NotFound />} />
       </Routes>
