@@ -43,12 +43,9 @@ exports.getNearbyHospitals = async (req, res) => {
       console.log('MongoDB returned 0 hospitals. Fetching from OpenStreetMap API proxy...');
       
       const overpassQuery = `
-        [out:json][timeout:25];
+        [out:json][timeout:20];
         (
-          nwr["amenity"="clinic"](around:${radius},${lat},${lng});
           nwr["amenity"="hospital"](around:${radius},${lat},${lng});
-          nwr["amenity"="doctors"](around:${radius},${lat},${lng});
-          nwr["healthcare"="clinic"](around:${radius},${lat},${lng});
           nwr["healthcare"="hospital"](around:${radius},${lat},${lng});
         );
         out center;
