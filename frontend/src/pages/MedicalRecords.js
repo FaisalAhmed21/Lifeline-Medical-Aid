@@ -527,7 +527,7 @@ const MedicalRecords = () => {
         ) : (
           <div className="space-y-3">
             {records.map((record, idx) => {
-              const fileUrl = `${process.env.REACT_APP_API_URL.replace('/api', '')}${record.fileUrl}`;
+              const fileUrl = `${(process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace('/api', '')}${record.fileUrl}`;
               
               return (
                 <div

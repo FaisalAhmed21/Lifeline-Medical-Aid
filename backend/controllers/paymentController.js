@@ -43,7 +43,9 @@ exports.initiatePayment = async (req, res) => {
       },
       redirect_url: `${clientUrl}/payment/success`,
       cancel_url: `${clientUrl}/payment/cancelled`,
-      webhook_url: `${clientUrl}/api/payment/webhook`
+      // Prefer SERVER_URL env; otherwise derive from the incoming request host
+      // (works both locally and behind Render's proxy)
+      webhook_url: `${process.env.SERVER_URL || `${req.protocol}://${req.get('host')}`}/api/payment/webhook`
     };
 
     console.log('💳 Initiating UddoktaPay payment:', {

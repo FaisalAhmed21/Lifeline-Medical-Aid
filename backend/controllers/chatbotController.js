@@ -9,11 +9,12 @@ exports.askChatbot = async (req, res) => {
     }
 
     const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-    
-    if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your-openrouter-api-key') {
-      return res.status(500).json({ 
-        success: false, 
-        error: 'OpenRouter API Key is not configured on the server.' 
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
+    if ((!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your-openrouter-api-key') && !GROQ_API_KEY) {
+      return res.status(500).json({
+        success: false,
+        error: 'No AI provider API key is configured on the server.'
       });
     }
 
@@ -30,16 +31,20 @@ exports.askChatbot = async (req, res) => {
 
     const messages = [systemPrompt, ...formattedHistory, { role: 'user', content: message }];
 
+    const useGroq = !OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your-openrouter-api-key';
+
     const response = await axios.post(
-      'https://openrouter.ai/api/v1/chat/completions',
+      useGroq
+        ? 'https://api.groq.com/openai/v1/chat/completions'
+        : 'https://openrouter.ai/api/v1/chat/completions',
       {
-        model: 'openrouter/free',
+        model: useGroq ? 'openai/gpt-oss-120b' : 'openrouter/free',
         messages: messages,
         max_tokens: 1000,
       },
       {
         headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Authorization': `Bearer ${useGroq ? GROQ_API_KEY : OPENROUTER_API_KEY}`,
           'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
           'X-Title': 'Lifeline Medical Aid',
           'Content-Type': 'application/json'

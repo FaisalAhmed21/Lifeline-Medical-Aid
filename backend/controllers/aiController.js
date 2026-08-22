@@ -101,7 +101,7 @@ exports.chatWithAI = async (req, res) => {
 
     // Call Groq API (Llama 3.3 70B - excellent for medical advice)
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile', // Best free model
+      model: 'openai/gpt-oss-120b', // Best free model
       messages: messages,
       temperature: 0.7,
       max_tokens: 1024,
@@ -175,7 +175,7 @@ exports.translateText = async (req, res) => {
     const languageName = targetLanguage === 'bn' ? 'Bangla' : 'English';
 
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
       messages: [
         {
           role: 'system',
@@ -219,7 +219,7 @@ exports.getHealthTips = async (req, res) => {
       : 'Provide 5 important health tips for rural communities in Bangladesh. Keep each tip to 2-3 lines.';
 
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
       messages: [
         {
           role: 'system',

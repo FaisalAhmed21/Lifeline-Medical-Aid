@@ -87,7 +87,7 @@ const HelperEmergencyView = () => {
 
   useEffect(() => {
     // Initialize Socket.IO
-    const socket = io('https://lifeline-medical-aid-backend.onrender.com/', {
+    const socket = io(process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000', {
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
@@ -1050,7 +1050,7 @@ const HelperEmergencyView = () => {
                               {record.medicalFiles.map((file, idx) => (
                                 <a
                                   key={idx}
-                                  href={`https://lifeline-medical-aid-backend.onrender.com/${file.fileUrl}`}
+                                  href={`${(process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace('/api', '')}${file.fileUrl}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold transition-colors bg-white p-2 rounded border border-blue-200 hover:border-blue-400"

@@ -13,7 +13,7 @@ const HelperLocationUpdater = ({ emergencyId }) => {
 
   useEffect(() => {
     // Initialize Socket.IO
-    const socket = io('https://lifeline-medical-aid-backend.onrender.com/', {
+    const socket = io(process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000', {
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,

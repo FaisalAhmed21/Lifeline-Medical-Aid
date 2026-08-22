@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FaPhoneAlt, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
-import axios from 'axios';
+import api from '../utils/api';
 
 const Emergency999 = () => {
   const { t } = useTranslation();
@@ -71,7 +71,7 @@ const Emergency999 = () => {
             
             // Log the 999 call in our system
             try {
-              await axios.post(`${process.env.REACT_APP_API_URL}/emergency/999-call`, {
+              await api.post('/emergency/999-call', {
                 location: {
                   type: 'Point',
                   coordinates: [longitude, latitude]

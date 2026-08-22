@@ -384,3 +384,32 @@ Developer notes
 - i18n support lives in frontend/src/locales (English/Bangla).
 
 If backend has an inner .git directory it may be treated as an embedded repo when adding the project to a single repository. Remove or relocate inner .git if you want backend tracked as normal files.
+
+---
+
+Recent fixes & deployment update (August 2026)
+----------------------------------------------
+
+Bug fixes in this update:
+
+- AI chat endpoints now use a current Groq model (`openai/gpt-oss-120b`); the previous model (`llama-3.3-70b-versatile`) was retired by Groq.
+- LifeBot chatbot (`/api/chatbot/ask`) now falls back to Groq when the OpenRouter key is not configured.
+- Frontend no longer hardcodes the Render backend URL — all API and Socket.IO URLs derive from `REACT_APP_API_URL` (falls back to the CRA proxy / localhost in development).
+- Voice command emergency creation and 999-call logging now use the authenticated API wrapper and the correct endpoints.
+- Chat input bar raised above floating widgets so the send button is always clickable.
+- Medical Records page no longer crashes when `REACT_APP_API_URL` is unset.
+- UddoktaPay webhook URL now points at the backend (`<backend-url>/api/payment/webhook`), derived from `SERVER_URL` or the request host.
+- Added missing `uuid` dependency; removed empty `roleSpecific` dead files.
+
+Local development configuration:
+
+- `frontend/.env` (development, gitignored): `REACT_APP_API_URL=http://localhost:5000/api`
+- `frontend/package.json` proxy: `http://localhost:5000`
+- `frontend/.env.production` (committed) sets `REACT_APP_API_URL=https://lifeline-medical-aid-backend.onrender.com/api` so production builds talk to the Render backend automatically.
+
+Deploying updates to Render:
+
+1. Commit and push to GitHub (main branch).
+2. Render auto-deploys both services from the repo (if auto-deploy is disabled, open the Render dashboard and click "Manual Deploy" → "Deploy latest commit" for the frontend and backend services).
+3. Backend env vars on Render should include: `MONGODB_URI`, `JWT_SECRET`, `GROQ_API_KEY`, `CLIENT_URL=https://lifeline-medical-aid.onrender.com`, `GOOGLE_CLIENT_ID/SECRET`, and optionally `SERVER_URL=https://lifeline-medical-aid-backend.onrender.com` (used for the payment webhook).
+4. After the deploy finishes, verify https://lifeline-medical-aid.onrender.com — login should work and the Hospital Locator should list nearby hospitals.

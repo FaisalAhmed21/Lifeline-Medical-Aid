@@ -67,7 +67,7 @@ const ChatRoom = () => {
 
   // Initialize Socket.IO
   useEffect(() => {
-    const socket = io('https://lifeline-medical-aid-backend.onrender.com/', {
+    const socket = io(process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000', {
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
@@ -456,7 +456,7 @@ const ChatRoom = () => {
                   {record.fileUrl && (
                     <div className="mt-2">
                       <a
-                        href={`https://lifeline-medical-aid-backend.onrender.com/${record.fileUrl}`}
+                        href={`${(process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace('/api', '')}${record.fileUrl}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 flex items-center gap-2"

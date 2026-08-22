@@ -214,6 +214,8 @@
 }
 
 .chat-input-form {
+  position: relative;
+  z-index: 60;
   display: flex;
   gap: 0.5rem;
   padding: 1rem;

@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FaMicrophone, FaStop } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import api from '../utils/api';
 import { toast } from 'react-toastify';
 
 const VoiceCommand = ({ onCommand }) => {
@@ -116,7 +116,7 @@ const VoiceCommand = ({ onCommand }) => {
             const { latitude, longitude } = position.coords;
             
             // Create emergency request
-            await axios.post(`${process.env.REACT_APP_API_URL}/emergency/create`, {
+            await api.post('/emergency', {
               location: {
                 type: 'Point',
                 coordinates: [longitude, latitude]

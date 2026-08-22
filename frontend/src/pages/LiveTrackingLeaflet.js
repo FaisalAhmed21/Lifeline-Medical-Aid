@@ -77,7 +77,7 @@ const LiveTrackingLeaflet = () => {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    const socket = io('https://lifeline-medical-aid-backend.onrender.com/', {
+    const socket = io(process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000', {
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,

@@ -113,7 +113,7 @@ const Profile = () => {
         return user.profilePicture;
       }
       // If it's a file path from our server (e.g., /uploads/profiles/filename.jpg)
-      const apiBaseUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'https://lifeline-medical-aid-backend.onrender.com/';
+      const apiBaseUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
       return `${apiBaseUrl}${user.profilePicture}`;
     }
     return null;
