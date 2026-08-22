@@ -8,3 +8,8 @@ build/
 uploads/
 bundle.js
 preg.json
+
+# test artifacts
+audit_*.json
+hc*.json
+llogin.json
