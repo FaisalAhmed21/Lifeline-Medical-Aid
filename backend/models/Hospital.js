@@ -136,6 +136,11 @@ const hospitalSchema = new mongoose.Schema({
     enum: ['Government', 'Private', 'Trust', 'Research', 'Military'],
     default: 'Private'
   },
+  osmId: {
+    type: String,
+    index: true,
+    default: null
+  },
   isVerified: {
     type: Boolean,
     default: false

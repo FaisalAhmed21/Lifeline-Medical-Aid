@@ -80,10 +80,39 @@ exports.getNearbyHospitals = async (req, res) => {
         data = await Promise.any(requests);
       } catch (aggregateError) {
         console.error('All OSM API endpoints failed:', aggregateError.message);
-        return res.status(500).json({
-          success: false,
-          error: 'OSM API failed to fetch data. All servers are currently busy or rate-limiting.'
-        });
+        // Overpass is rate-limiting or down — fall back to whatever the
+        // database has (cached from earlier fetches), with a wider radius,
+        // instead of failing the request entirely.
+        try {
+          const fallbackRadius = Math.max(parseInt(maxDistance) * 5, 50000);
+          const fallbackHospitals = await Hospital.findNearby(
+            parseFloat(longitude),
+            parseFloat(latitude),
+            fallbackRadius,
+            filters
+          );
+          const fallbackWithDistance = fallbackHospitals
+            .filter(h => h.location && h.location.coordinates)
+            .map(hospital => {
+              const [hospLng, hospLat] = hospital.location.coordinates;
+              const distance = calculateDistance(parseFloat(latitude), parseFloat(longitude), hospLat, hospLng);
+              return { ...hospital.toObject(), distance: parseFloat(distance.toFixed(2)) };
+            })
+            .filter(h => h.distance <= parseInt(maxDistance) / 1000 + 5)
+            .sort((a, b) => a.distance - b.distance);
+          console.log(`⚠️ OSM unavailable, served ${fallbackWithDistance.length} cached hospitals from database`);
+          return res.status(200).json({
+            success: true,
+            count: fallbackWithDistance.length,
+            cached: true,
+            data: fallbackWithDistance
+          });
+        } catch (dbError) {
+          return res.status(503).json({
+            success: false,
+            error: 'Hospital search is temporarily unavailable. Please try again shortly.'
+          });
+        }
       }
 
       try {
@@ -144,6 +173,27 @@ exports.getNearbyHospitals = async (req, res) => {
         });
         
         osmHospitals.sort((a, b) => a.distance - b.distance);
+
+        // Cache the fetched hospitals in the database so future searches in
+        // this area don't depend on the rate-limited Overpass API.
+        try {
+          const ops = osmHospitals.map(h => {
+            const { _id, distance, ...doc } = h;
+            return {
+              updateOne: {
+                filter: { osmId: String(_id) },
+                update: { $set: { ...doc, osmId: String(_id), isVerified: true, isActive: true } },
+                upsert: true
+              }
+            };
+          });
+          if (ops.length > 0) {
+            await Hospital.bulkWrite(ops, { ordered: false });
+            console.log(`💾 Cached ${ops.length} hospitals in database`);
+          }
+        } catch (cacheError) {
+          console.error('Failed to cache hospitals (non-fatal):', cacheError.message);
+        }
 
         return res.status(200).json({
           success: true,

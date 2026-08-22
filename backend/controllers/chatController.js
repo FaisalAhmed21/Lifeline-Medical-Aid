@@ -252,9 +252,10 @@ exports.getChatMessages = async (req, res) => {
       });
     }
 
-    // Verify user is participant
+    // Verify user is participant (p.user may be populated to a document here,
+    // so compare against its _id when present)
     const isParticipant = chat.participants.some(
-      p => p.user.toString() === userId
+      p => (p.user._id ? p.user._id.toString() : p.user.toString()) === userId
     );
 
     if (!isParticipant) {
