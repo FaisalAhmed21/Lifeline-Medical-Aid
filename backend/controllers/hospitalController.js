@@ -1,6 +1,48 @@
 const Hospital = require('../models/Hospital');
 const axios = require('axios');
 
+// Bundled seed dataset (Bangladesh hospitals from OpenStreetMap) used when
+// both the database cache and the Overpass API are unavailable.
+let seedCache = null;
+function getSeedHospitals(latitude, longitude, maxDistanceMeters) {
+  if (seedCache === null) {
+    try {
+      seedCache = require('../data/dhakaHospitals.json');
+    } catch (e) {
+      seedCache = [];
+    }
+  }
+  const radiusKm = maxDistanceMeters / 1000 + 5;
+  return seedCache
+    .filter(h => h.location && h.location.coordinates)
+    .map(h => {
+      const [hospLng, hospLat] = h.location.coordinates;
+      const distance = calculateDistance(latitude, longitude, hospLat, hospLng);
+      return { ...h, distance: parseFloat(distance.toFixed(2)) };
+    })
+    .filter(h => h.distance <= radiusKm)
+    .sort((a, b) => a.distance - b.distance);
+}
+
+async function seedDatabaseInBackground(hospitals) {
+  const ops = hospitals
+    .filter(h => h.osmId)
+    .map(h => {
+      const { distance, ...doc } = h;
+      return {
+        updateOne: {
+          filter: { osmId: h.osmId },
+          update: { $set: { ...doc, isVerified: true, isActive: true } },
+          upsert: true
+        }
+      };
+    });
+  if (ops.length > 0) {
+    await Hospital.bulkWrite(ops, { ordered: false });
+    console.log(`💾 Seeded ${ops.length} hospitals into database`);
+  }
+}
+
 // Get nearby hospitals
 exports.getNearbyHospitals = async (req, res) => {
   try {
@@ -101,6 +143,23 @@ exports.getNearbyHospitals = async (req, res) => {
             .filter(h => h.distance <= parseInt(maxDistance) / 1000 + 5)
             .sort((a, b) => a.distance - b.distance);
           console.log(`⚠️ OSM unavailable, served ${fallbackWithDistance.length} cached hospitals from database`);
+          if (fallbackWithDistance.length === 0) {
+            // Last resort: bundled seed dataset (Bangladesh hospitals collected
+            // from OpenStreetMap), so the locator keeps working even when the
+            // database is empty and Overpass is rate-limiting.
+            const seeded = getSeedHospitals(parseFloat(latitude), parseFloat(longitude), parseInt(maxDistance));
+            if (seeded.length > 0) {
+              // Fire-and-forget: persist the seed data so future requests hit the DB
+              seedDatabaseInBackground(seeded).catch(() => {});
+              console.log(`📦 Served ${seeded.length} hospitals from bundled seed dataset`);
+              return res.status(200).json({
+                success: true,
+                count: seeded.length,
+                cached: true,
+                data: seeded
+              });
+            }
+          }
           return res.status(200).json({
             success: true,
             count: fallbackWithDistance.length,
