@@ -38,7 +38,7 @@ exports.askChatbot = async (req, res) => {
         ? 'https://api.groq.com/openai/v1/chat/completions'
         : 'https://openrouter.ai/api/v1/chat/completions',
       {
-        model: useGroq ? 'openai/gpt-oss-120b' : 'openrouter/free',
+        model: useGroq ? 'openai/gpt-oss-120b' : 'openrouter/auto',
         messages: messages,
         max_tokens: 1000,
       },

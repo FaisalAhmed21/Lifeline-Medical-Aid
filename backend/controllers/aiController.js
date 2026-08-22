@@ -1,10 +1,47 @@
 const Groq = require('groq-sdk');
+const axios = require('axios');
 const AIChatHistory = require('../models/AIChatHistory');
 
-// Initialize Groq AI (FREE: 30 RPM, 14,400/day - much better than Gemini!)
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || 'gsk_demo_key' // Get free key from console.groq.com
-});
+// Provider-agnostic chat completion: tries OpenRouter first, then Groq,
+// so whichever API key is configured on the host works.
+const aiComplete = async (messages, { temperature = 0.7, max_tokens = 1024 } = {}) => {
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
+  if (openRouterKey && openRouterKey !== 'your-openrouter-api-key') {
+    try {
+      const r = await axios.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        { model: 'openrouter/auto', messages, temperature, max_tokens },
+        {
+          headers: {
+            'Authorization': `Bearer ${openRouterKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 25000
+        }
+      );
+      const content = r.data?.choices?.[0]?.message?.content;
+      if (content) return content;
+    } catch (e) {
+      console.error('OpenRouter failed, falling back to Groq:', e.response?.data?.error?.message || e.message);
+    }
+  }
+
+  const groqKey = process.env.GROQ_API_KEY;
+  if (groqKey && groqKey !== 'gsk_demo_key') {
+    const groq = new Groq({ apiKey: groqKey });
+    const completion = await groq.chat.completions.create({
+      model: 'openai/gpt-oss-120b',
+      messages,
+      temperature,
+      max_tokens,
+      top_p: 1,
+      stream: false
+    });
+    return completion.choices[0].message.content;
+  }
+
+  throw new Error('No AI provider key configured (set OPENROUTER_API_KEY or GROQ_API_KEY)');
+};
 
 // Medical context prompt for LifeBot
 const SYSTEM_PROMPT = `You are LifeBot, an AI medical assistant for a rural healthcare coordination system in Bangladesh. 
@@ -97,19 +134,9 @@ exports.chatWithAI = async (req, res) => {
       content: message
     });
 
-    console.log('🤖 Sending request to Groq AI...');
+    console.log('🤖 Sending request to AI provider...');
 
-    // Call Groq API (Llama 3.3 70B - excellent for medical advice)
-    const completion = await groq.chat.completions.create({
-      model: 'openai/gpt-oss-120b', // Best free model
-      messages: messages,
-      temperature: 0.7,
-      max_tokens: 1024,
-      top_p: 1,
-      stream: false
-    });
-
-    const responseText = completion.choices[0].message.content;
+    const responseText = await aiComplete(messages, { temperature: 0.7, max_tokens: 1024 });
     console.log('✅ AI response received:', responseText.substring(0, 100) + '...');
 
     // Save user message and AI response to database
@@ -174,9 +201,7 @@ exports.translateText = async (req, res) => {
 
     const languageName = targetLanguage === 'bn' ? 'Bangla' : 'English';
 
-    const completion = await groq.chat.completions.create({
-      model: 'openai/gpt-oss-120b',
-      messages: [
+    const translatedText = await aiComplete([
         {
           role: 'system',
           content: `You are a translator. Translate the given text to ${languageName}. Only return the translation, nothing else.`
@@ -186,11 +211,8 @@ exports.translateText = async (req, res) => {
           content: text
         }
       ],
-      temperature: 0.3,
-      max_tokens: 500
-    });
-
-    const translatedText = completion.choices[0].message.content;
+      { temperature: 0.3, max_tokens: 500 }
+    );
 
     res.status(200).json({
       success: true,
@@ -218,9 +240,7 @@ exports.getHealthTips = async (req, res) => {
       ? 'বাংলাদেশের গ্রামীণ এলাকার মানুষের জন্য ৫টি গুরুত্বপূর্ণ স্বাস্থ্য টিপস দিন। প্রতিটি টিপস ২-৩ লাইনে লিখুন।'
       : 'Provide 5 important health tips for rural communities in Bangladesh. Keep each tip to 2-3 lines.';
 
-    const completion = await groq.chat.completions.create({
-      model: 'openai/gpt-oss-120b',
-      messages: [
+    const tips = await aiComplete([
         {
           role: 'system',
           content: 'You are a health advisor for rural Bangladesh.'
@@ -230,11 +250,8 @@ exports.getHealthTips = async (req, res) => {
           content: prompt
         }
       ],
-      temperature: 0.8,
-      max_tokens: 600
-    });
-
-    const tips = completion.choices[0].message.content;
+      { temperature: 0.8, max_tokens: 600 }
+    );
 
     res.status(200).json({
       success: true,
