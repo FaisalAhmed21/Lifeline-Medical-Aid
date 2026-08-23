@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { FaEnvelope, FaLock, FaUser, FaPhone, FaGoogle } from 'react-icons/fa';
-import api from '../utils/api';
 
 const Register = () => {
   const { t } = useTranslation();
